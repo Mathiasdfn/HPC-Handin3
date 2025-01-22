@@ -204,3 +204,39 @@ void matmult_mnk_offload(int m, int n, int k, double **A, double **B, double **C
         }
     }
 }
+
+// 3.3
+void matmult_blk_offload(int m, int n, int k, double **A, double **B, double **C, int bs){
+    #define BLK 5 // Define block size at compile time
+
+    // Compute the blocked A*B product
+    #pragma omp target teams distribute parallel for \
+            num_teams(114) thread_limit(64)\
+            map(to: A[0:m][0:k], B[0:k][0:n]) map(from: C[0:m][0:n])
+
+    for (int ib = 0; ib < m; ib += BLK) {
+        for (int j = 0; j < n; j++) {
+            if (ib + BLK - 1 < m){ // Ensure we do not go out of bounds
+                double sum[BLK] = {0};
+                for (int l = 0; l < k; l++) {
+                    for (int i = 0; i < BLK; i++) {
+                        sum[i] += A[i+ib][l] * B[l][j];
+                }}
+
+                for (int i = 0; i < BLK; i++) {
+                    C[i+ib][j] = sum[i];
+                }
+            } else {
+                double sum[BLK] = {0};
+                for (int l = 0; l < k; l++) {
+                    for (int i = 0; i < m-ib; i++) {
+                    sum[i] += A[i + ib][l] * B[l][j];
+                }}
+
+                for (int i = 0; i < m-ib; i++) {
+                    C[i+ib][j] = sum[i];
+                }
+            }
+        } 
+    }
+}
