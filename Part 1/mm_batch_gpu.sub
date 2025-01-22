@@ -36,7 +36,9 @@ export MATMULT_COMPARE=0
 module load nvhpc/24.11
 
 # start the collect command with the above settings
-for S in $SIZES
-do
-    ./$EXECUTABLE $TYPE $S $S $S
-done
+
+TMPDIR=. /appl9/nvhpc/2024_2411/Linux_x86_64/24.11/profilers/Nsight_Compute/target/linux-desktop-glibc_2_11_3-x64/ncu --config-file off --export "/zhome/bb/9/153142/Documents/NVIDIA Nsight Compute/test" --force-overwrite --set detailed --import-source yes --source-folder "/zhome/bb/9/153142/02614HPC/afl3/HPC-Handin3/Part 1" "/zhome/bb/9/153142/02614HPC/afl3/HPC-Handin3/Part 1/matmult_c.nvc++" mnk_offload 4096 4096 4096
+# for S in $SIZES
+# do
+#     ./$EXECUTABLE $TYPE $S $S $S
+# done

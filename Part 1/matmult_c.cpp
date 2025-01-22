@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <cublas_v2.h>
 extern "C" {
 #include <cblas.h>
 void matmult_nat(int m, int n, int k, double **A, double **B, double **C);
@@ -191,12 +192,12 @@ void matmult_mnk_offload(int m, int n, int k, double **A, double **B, double **C
 
     // Compute A*B product
     #pragma omp target teams map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n]) \
-            num_teams(m) thread_limit(32)
-    #pragma omp distribute collapse(2)
+            num_teams(MIN(m*n/32, 7296)) thread_limit(32)
+    #pragma omp distribute collapse(1)
     for (int i=0; i<m; i++){
+        #pragma omp parallel for
         for (int j=0; j<n; j++){
             double sum = 0;
-            #pragma omp parallel for reduction(+:sum)
             for (int l=0; l<k; l++){
                 sum += A[i][l]*B[l][j];
             }
@@ -238,5 +239,30 @@ void matmult_blk_offload(int m, int n, int k, double **A, double **B, double **C
                 }
             }
         } 
+    }
+}
+
+// 3.5
+
+void matmult_lib_offload(int m, int n, int k, double **A, double **B, double **C){
+    #pragma omp target data map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n])
+    {
+    // Spawn CUBLAS handle
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
+    // Initialize parameters that are allowed on host (alpha=1, beta=0 for C=A.B)
+    double alpha = 1.0; double beta = 0.0;
+    
+    // Do matrix mult
+    // C = A B => C^T = B^T A^T
+    // C in mxn, A in mxk, B in kxn, A^T in kxm, B^T in nxk, C^T in nxm, so n,m,k
+    double * Aptr = A[0];
+    double * Bptr = B[0];
+    double * Cptr = C[0];
+    #pragma omp target data use_device_ptr(Aptr, Bptr, Cptr)
+    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, n, m, k, &alpha, Bptr, n, Aptr, k, &beta, Cptr, n);
+    // Destroy CUBLAS handle
+    cublasDestroy(handle);
     }
 }
