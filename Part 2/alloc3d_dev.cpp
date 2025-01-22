@@ -7,25 +7,22 @@ double ***d_malloc_3d(int m, int n, int k, double **data) {
 
     int dev_num = omp_get_default_device();
 
-    printf("alloc p\n");
     double ***p = (double***) omp_target_alloc(m * sizeof(double **) + m * n * sizeof(double *), dev_num);
     if (p == NULL) {
         return NULL;
     }
 
-    printf("set p[i]\n");
+    #pragma omp target is_device_ptr(p)
     for(int i = 0; i < m; i++) {
         p[i] = (double **) p + m + i * n;
     }
 
-    printf("alloc a\n");
     double *a = (double*) omp_target_alloc(m * n * k * sizeof(double), dev_num);
     if (a == NULL) {
 	    omp_target_free(p, dev_num);
 	    return NULL;
     }
 
-    printf("set p[i][j]\n");
     #pragma omp target is_device_ptr(p, a)
     for(int i = 0; i < m; i++) {
         for(int j = 0; j < n; j++) {
@@ -34,6 +31,7 @@ double ***d_malloc_3d(int m, int n, int k, double **data) {
     }
 
     *data = a;
+
     return p;
 }
 
