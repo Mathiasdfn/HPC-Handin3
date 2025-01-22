@@ -146,3 +146,97 @@ void matmult_blk(int m, int n, int k, double **A, double **B, double **C, int bs
                             C[i][j] += A[i][l] * B[l][j];
     }}}}}}
 }
+
+// 3.1
+void matmult_mkn_omp(int m, int n, int k, double **A, double **B, double **C) {
+    // Set C matrix to 0
+    for (int i=0; i<m; i++){
+        for (int j=0; j<n; j++){
+            C[i][j] = 0;
+    }}
+    
+    // Compute A*B product
+    #pragma omp parallel for
+    for (int i=0; i<m; i++){
+        for (int l=0; l<k; l++){
+            for (int j=0; j<n; j++){
+                C[i][j] += A[i][l]*B[l][j];
+    }}}
+}
+
+// 3.2
+void matmult_mkn_offload(int m, int n, int k, double **A, double **B, double **C) {
+    // Set C matrix to 0
+    for (int i=0; i<m; i++){
+        for (int j=0; j<n; j++){
+            C[i][j] = 0;
+    }}
+    
+    // Compute A*B product
+    #pragma omp target teams map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n]) \
+            num_teams(m) thread_limit(32)
+    #pragma omp distribute collapse(2)
+    for (int i=0; i<m; i++){
+        for (int l=0; l<k; l++){
+            #pragma omp parallel for
+            for (int j=0; j<n; j++){
+                C[i][j] += A[i][l]*B[l][j];
+            }
+        }
+    }
+}
+
+void matmult_mnk_offload(int m, int n, int k, double **A, double **B, double **C) {
+    // No need for init as C is set in the following loop
+
+    // Compute A*B product
+    #pragma omp target teams map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n]) \
+            num_teams(m) thread_limit(32)
+    #pragma omp distribute collapse(2)
+    for (int i=0; i<m; i++){
+        for (int j=0; j<n; j++){
+            double sum = 0;
+            #pragma omp parallel for reduction(+:sum)
+            for (int l=0; l<k; l++){
+                sum += A[i][l]*B[l][j];
+            }
+            C[i][j] = sum;
+        }
+    }
+}
+
+// 3.3
+void matmult_blk_offload(int m, int n, int k, double **A, double **B, double **C, int bs){
+    #define BLK 5 // Define block size at compile time
+
+    // Compute the blocked A*B product
+    #pragma omp target teams distribute parallel for \
+            num_teams(114) thread_limit(64)\
+            map(to: A[0:m][0:k], B[0:k][0:n]) map(from: C[0:m][0:n])
+
+    for (int ib = 0; ib < m; ib += BLK) {
+        for (int j = 0; j < n; j++) {
+            if (ib + BLK - 1 < m){ // Ensure we do not go out of bounds
+                double sum[BLK] = {0};
+                for (int l = 0; l < k; l++) {
+                    for (int i = 0; i < BLK; i++) {
+                        sum[i] += A[i+ib][l] * B[l][j];
+                }}
+
+                for (int i = 0; i < BLK; i++) {
+                    C[i+ib][j] = sum[i];
+                }
+            } else {
+                double sum[BLK] = {0};
+                for (int l = 0; l < k; l++) {
+                    for (int i = 0; i < m-ib; i++) {
+                    sum[i] += A[i + ib][l] * B[l][j];
+                }}
+
+                for (int i = 0; i < m-ib; i++) {
+                    C[i+ib][j] = sum[i];
+                }
+            }
+        } 
+    }
+}
