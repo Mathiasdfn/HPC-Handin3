@@ -24,9 +24,9 @@ int main(int argc, char *argv[]) {
     int 	N = 100;
     int 	iter_max = 10000;
     double	start_T = 10;
-    bool    debug_print = true;
+    bool    debug_print = false;
     bool    offload = true;
-    bool    offload_map = true;
+    bool    offload_map = false;
     bool    offload_dual = true;
 
     if (argc >= 2) N = atoi(argv[1]);	// grid size
@@ -219,13 +219,14 @@ int main(int argc, char *argv[]) {
 
     // compute and time jacobi_offload_dual on two devices
     if(offload_dual) {
-        if(debug_print) printf("Compute jacobi_offload_dual on device\n");
+        if(debug_print) printf("Turn on CUDA peer-to-peer access\n");
         cudaSetDevice(0);
         cudaDeviceEnablePeerAccess(1, 0); // (dev 1, future flag)
         cudaSetDevice(1);
         cudaDeviceEnablePeerAccess(0, 0); // (dev 0, future flag)
         cudaSetDevice(0);
 
+        if(debug_print) printf("Compute jacobi_offload_dual on device\n");
         start_time = omp_get_wtime();
         jacobi_offload_dual(f_d0, f_d1, u_d0, u_d1, u_old_d0, u_old_d1, N, iter_max);
         end_time = omp_get_wtime();
