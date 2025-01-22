@@ -23,7 +23,7 @@ void update_u(double ***f, double ***u, double ***u_old, int N) {
     double delta2 = delta * delta;
     double frac = 1.0 / 6.0;
 
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for
     for (int i = 1; i < N-1; i++) {
         for (int j = 1; j < N-1; j++) {
             for (int k = 1; k < N-1; k++) {
