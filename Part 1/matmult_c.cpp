@@ -240,3 +240,35 @@ void matmult_blk_offload(int m, int n, int k, double **A, double **B, double **C
         } 
     }
 }
+
+
+void matmult_asy_offload(int m, int n, int k, double **A, double **B, double **C){
+    //#pragma target data map(to:A[0:m][0:k], B[0:k][0:n]) map(from: C[0:m][0:n])
+    {
+        #define SLAPS 2
+      
+        for (int s = 0; s < SLAPS; s++) {
+            
+            int length = m/SLAPS;
+            int slap_start = s*length;
+
+            //#pragma omp target update to(A[slap_start+i:length][0:n])
+
+            #pragma omp target teams distribute parallel for collapse(2) nowait\
+                    num_teams(length) thread_limit(n*k/4)\
+                    map(to:A[slap_start:length][0:k], B[0:k][0:n]) map(from:C[slap_start:length][0:n])
+
+                for (int i = slap_start; i < length+slap_start; i++) {
+                    for (int j = 0; j < n; j++) {
+                        double sum = 0.0 ;
+                        for (int l = 0; l < k; l++) {
+                            sum += A[i][l] * B[l][j];
+                        }
+                        C[i][j] = sum;
+                    }
+                //#pragma omp target update from(C[slap_start+i:length][0:n])
+                }
+            }
+            #pragma omp taskwait
+    } /* Exit data region*/
+}
