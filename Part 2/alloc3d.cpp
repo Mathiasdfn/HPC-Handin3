@@ -1,7 +1,6 @@
 #include <stdlib.h>
 
-double ***
-malloc_3d(int m, int n, int k) {
+double ***malloc_3d(int m, int n, int k) {
 
     if (m <= 0 || n <= 0 || k <= 0)
         return NULL;
@@ -31,8 +30,7 @@ malloc_3d(int m, int n, int k) {
     return p;
 }
 
-void
-free_3d(double ***p) {
+void free_3d(double ***p) {
     free(p[0][0]);
     free(p);
 }

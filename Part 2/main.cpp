@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include "alloc3d.h"
-#include "print.h"
 #include "jacobi.h"
+#include "jacobi_offload.h"
 
 void init_f(double ***f, int N);
 void init_u_inner(double ***u, int N, double start_T);
@@ -53,6 +53,7 @@ int main(int argc, char *argv[]) {
 
     // compute Jacobi method
     jacobi(f, u, u_old, N, iter_max);
+    jacobi_offload(f, u, u_old, N, iter_max);
     
     // de-allocate memory
     free_3d(f);
@@ -132,4 +133,19 @@ void init_u_corners(double ***u, int N) {
     u[N-1][0][N-1] = NAN;
     u[N-1][N-1][0] = NAN;
     u[N-1][N-1][N-1] = NAN;
+}
+
+double diff_norm_squared(double ***u1, double ***u2, int N) {
+    double norm = 0.0;
+
+    for (int i = 1; i < N-1; i++) {
+        for (int j = 1; j < N-1; j++) {
+            for (int k = 1; k < N-1; k++) {
+                double x = u1[i][j][k] - u2[i][j][k];
+                norm += x * x;
+            }
+        }
+    }
+
+    return norm;
 }
