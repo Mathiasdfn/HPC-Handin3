@@ -146,3 +146,61 @@ void matmult_blk(int m, int n, int k, double **A, double **B, double **C, int bs
                             C[i][j] += A[i][l] * B[l][j];
     }}}}}}
 }
+
+// 3.1
+void matmult_mkn_omp(int m, int n, int k, double **A, double **B, double **C) {
+    // Set C matrix to 0
+    for (int i=0; i<m; i++){
+        for (int j=0; j<n; j++){
+            C[i][j] = 0;
+    }}
+    
+    // Compute A*B product
+    #pragma omp parallel for
+    for (int i=0; i<m; i++){
+        for (int l=0; l<k; l++){
+            for (int j=0; j<n; j++){
+                C[i][j] += A[i][l]*B[l][j];
+    }}}
+}
+
+// 3.2
+void matmult_mkn_offload(int m, int n, int k, double **A, double **B, double **C) {
+    // Set C matrix to 0
+    for (int i=0; i<m; i++){
+        for (int j=0; j<n; j++){
+            C[i][j] = 0;
+    }}
+    
+    // Compute A*B product
+    #pragma omp target teams map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n]) \
+            num_teams(m) thread_limit(32)
+    #pragma omp distribute collapse(2)
+    for (int i=0; i<m; i++){
+        for (int l=0; l<k; l++){
+            #pragma omp parallel for
+            for (int j=0; j<n; j++){
+                C[i][j] += A[i][l]*B[l][j];
+            }
+        }
+    }
+}
+
+void matmult_mnk_offload(int m, int n, int k, double **A, double **B, double **C) {
+    // No need for init as C is set in the following loop
+
+    // Compute A*B product
+    #pragma omp target teams map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n]) \
+            num_teams(m) thread_limit(32)
+    #pragma omp distribute collapse(2)
+    for (int i=0; i<m; i++){
+        for (int j=0; j<n; j++){
+            double sum = 0;
+            #pragma omp parallel for reduction(+:sum)
+            for (int l=0; l<k; l++){
+                sum += A[i][l]*B[l][j];
+            }
+            C[i][j] = sum;
+        }
+    }
+}
