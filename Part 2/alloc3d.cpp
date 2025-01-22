@@ -1,7 +1,6 @@
 #include <stdlib.h>
 
 double ***malloc_3d(int m, int n, int k) {
-
     if (m <= 0 || n <= 0 || k <= 0)
         return NULL;
 
