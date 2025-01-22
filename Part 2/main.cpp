@@ -2,13 +2,14 @@
  *
  */
 #include <stdio.h>
+#include <stdbool.h>
 #include <math.h>
 #include <omp.h>
 #include "alloc3d.h"
 #include "alloc3d_dev.h"
 #include "jacobi.h"
 #include "jacobi_offload.h"
-#include "jacobi_offload_mem.h"
+#include "jacobi_offload_map.h"
 
 void init_f(double ***f, int N);
 void init_u_inner(double ***u, int N, double start_T);
@@ -18,8 +19,10 @@ double diff_norm_squared(double ***u1, double ***u2, int N);
 void print_3d_array(double ***A, int N);
 
 int main(int argc, char *argv[]) {
+    bool debug_print = true;
+
     /* get the paramters from the command line */
-    printf("Get parameters\n");
+    if(debug_print) printf("Get parameters\n");
     int 	N = 100;
     int 	iter_max = 10000;
     double	start_T = 10;
@@ -29,12 +32,12 @@ int main(int argc, char *argv[]) {
     if (argc >= 4) start_T = atof(argv[3]);  // start T for all inner grid points
 
     // allocate memory
-    printf("Allocate memory on host\n");
+    if(debug_print) printf("Allocate memory on host\n");
     double  ***f = NULL;
     double 	***u = NULL;
     double 	***u_old = NULL;
     double 	***u2 = NULL;
-    double 	***u2_old = NULL;
+    double 	***u_old2 = NULL;
 
     if ( (f = malloc_3d(N, N, N)) == NULL ) {
         perror("array f: allocation failed");
@@ -52,13 +55,13 @@ int main(int argc, char *argv[]) {
         perror("array u: allocation failed");
         exit(-1);
     }
-    if ( (u2_old = malloc_3d(N, N, N)) == NULL ) {
+    if ( (u_old2 = malloc_3d(N, N, N)) == NULL ) {
         perror("array u_old: allocation failed");
         exit(-1);
     }
 
     // allocate memory on device
-    printf("Allocate memory on device\n");
+    if(debug_print) printf("Allocate memory on device\n");
     double  ***f_d = NULL;
     double 	***u_d = NULL;
     double 	***u_old_d = NULL;
@@ -80,17 +83,17 @@ int main(int argc, char *argv[]) {
     }
 
     // initialize matrices
-    printf("Initialize matrices on host\n");
+    if(debug_print) printf("Initialize matrices on host\n");
     init_f(f, N);
     init_u_inner(u, N, start_T);
     init_u_borders(u, N);
     init_u_borders(u_old, N);
     init_u_inner(u2, N, start_T);
     init_u_borders(u2, N);
-    init_u_borders(u2_old, N);
+    init_u_borders(u_old2, N);
 
     // copy memory to device
-    printf("Copy memory to device\n");
+    if(debug_print) printf("Copy memory to device\n");
     int dev_num = omp_get_default_device();
     int host_num = omp_get_initial_device();
     omp_target_memcpy(data_f_d, f[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
@@ -101,8 +104,8 @@ int main(int argc, char *argv[]) {
     // init_u_corners(u, N);
     // init_u_corners(u_old, N);
 
-    // compute and time jacobi with offload map
-    printf("Compute jacobi on host\n");
+    // compute and time jacobi on host
+    if(debug_print) printf("Compute jacobi on host\n");
     double  start_time, end_time, time;
 
     start_time = omp_get_wtime();
@@ -111,38 +114,39 @@ int main(int argc, char *argv[]) {
 
     printf("Time for jacobi: %.6f seconds\n", end_time - start_time);
 
-    printf("Compute jacobi on device with map\n");
+    // compute and time jacobi on device with map
+    if(debug_print) printf("Compute jacobi_offload_map on device with map\n");
     start_time = omp_get_wtime();
-    time = jacobi_offload(f, u2, u2_old, N, iter_max);
+    time = jacobi_offload_map(f, u2, u_old2, N, iter_max);
     end_time = omp_get_wtime();
 
-    printf("Time for jacobi_offload: %.6f seconds\n", end_time - start_time);
-    printf("Time for jacobi_offload w/o transfer: %.6f seconds\n", time);
+    printf("Time for jacobi_offload_map: %.6f seconds\n", end_time - start_time);
+    printf("Time for jacobi_offload_map w/o transfer: %.6f seconds\n", time);
     printf("Norm difference ||u - u_d||^2: %.6f\n", diff_norm_squared(u, u2, N));
 
-    // compute and time jacobi with offload target memory
-    printf("Compute jacobi on device with target memory\n");
+    // compute and time jacobi on device
+    if(debug_print) printf("Compute jacobi_offload on device\n");
     start_time = omp_get_wtime();
-    jacobi_offload_mem(f_d, u_d, u_old_d, N, iter_max);
+    jacobi_offload(f_d, u_d, u_old_d, N, iter_max);
     end_time = omp_get_wtime();
 
-    printf("Copy device memory to host\n");
+    if(debug_print) printf("Copy device memory to host\n");
     omp_target_memcpy(u2[0][0], data_u_d, N * N * N * sizeof(double), 0, 0, host_num, dev_num);
-    omp_target_memcpy(u2_old[0][0], data_u_old_d, N * N * N * sizeof(double), 0, 0, host_num, dev_num);
+    omp_target_memcpy(u_old2[0][0], data_u_old_d, N * N * N * sizeof(double), 0, 0, host_num, dev_num);
 
-    printf("Time for jacobi_offload_mem: %.6f seconds\n", end_time - start_time);
+    printf("Time for jacobi_offload: %.6f seconds\n", end_time - start_time);
     printf("Norm difference ||u - u_d||^2: %.6f\n", diff_norm_squared(u, u2, N));
     
     // de-allocate memory
-    printf("Deallocate memory on host\n");
+    if(debug_print) printf("Deallocate memory on host\n");
     free_3d(f);
     free_3d(u);
     free_3d(u_old);
     free_3d(u2);
-    free_3d(u2_old);
+    free_3d(u_old2);
 
     // de-allocate memory on device
-    printf("Deallocate memory on host\n");
+    if(debug_print) printf("Deallocate memory on host\n");
     d_free_3d(f_d, data_f_d);
     d_free_3d(u_d, data_u_d);
     d_free_3d(u_old_d, data_u_old_d);

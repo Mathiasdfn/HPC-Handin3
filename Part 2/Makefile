@@ -2,7 +2,7 @@ TARGET= poisson
 OBJS	= main.o \
         jacobi.o \
         jacobi_offload.o \
-        jacobi_offload_mem.o \
+        jacobi_offload_map.o \
         alloc3d.o \
         alloc3d_dev.o \
 
