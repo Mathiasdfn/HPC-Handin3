@@ -3,6 +3,7 @@ OBJS	= main.o \
         jacobi.o \
         jacobi_offload.o \
         jacobi_offload_map.o \
+        jacobi_offload_dual.o \
         alloc3d.o \
         alloc3d_dev.o \
 
