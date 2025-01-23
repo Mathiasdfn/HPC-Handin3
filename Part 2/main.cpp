@@ -180,13 +180,22 @@ int main(int argc, char *argv[]) {
     if(offload_dual) {
         if(debug_print) printf("Copy memory to two devices\n");
 
-        omp_target_memcpy(data_f_d0, f[0][0], N * N * N * sizeof(double) / 2, 0, 0, 0, host_num);
-        omp_target_memcpy(data_u_d0, u[0][0], N * N * N * sizeof(double) / 2, 0, 0, 0, host_num);
-        omp_target_memcpy(data_u_old_d0, u_old[0][0], N * N * N * sizeof(double) / 2, 0, 0, 0, host_num);
+        // Copy memory to GPU 0
+        omp_target_memcpy(data_f_d0, f[0][0], N*N*N*sizeof(double)/2, 0, 0, 0, host_num);
+        omp_target_memcpy(data_u_d0, u[0][0], N*N*N*sizeof(double)/2, 0, 0, 0, host_num);
+        omp_target_memcpy(data_u_old_d0, u_old[0][0], N*N*N*sizeof(double)/2, 0, 0, 0, host_num);
 
-        omp_target_memcpy(data_f_d1, f[N/2][0], N * N * N * sizeof(double) / 2, 0, 0, 1, host_num);
-        omp_target_memcpy(data_u_d1, u[N/2][0], N * N * N * sizeof(double) / 2, 0, 0, 1, host_num);
-        omp_target_memcpy(data_u_old_d1, u_old[N/2][0], N * N * N * sizeof(double) / 2, 0, 0, 1, host_num);
+        // Copy memory to GPU 1
+        omp_target_memcpy(data_f_d1, f[N/2][0], N*N*N*sizeof(double)/2, 0, 0, 1, host_num);
+        omp_target_memcpy(data_u_d1, u[N/2][0], N*N*N*sizeof(double)/2, 0, 0, 1, host_num);
+        omp_target_memcpy(data_u_old_d1, u_old[N/2][0], N*N*N*sizeof(double)/2, 0, 0, 1, host_num);
+
+        // Enable peer-to-peer access between GPU 0 and GPU 1
+        cudaSetDevice(0);
+        cudaDeviceEnablePeerAccess(1, 0); // (dev 1, future flag)
+        cudaSetDevice(1);
+        cudaDeviceEnablePeerAccess(0, 0); // (dev 0, future flag)
+        cudaSetDevice(0);
     }
 
 
@@ -265,15 +274,6 @@ int main(int argc, char *argv[]) {
 
     // compute and time jacobi_offload_dual on two devices
     if(offload_dual) {
-        // enable CUDA peer-to-peer access
-        if(debug_print) printf("Turn on CUDA peer-to-peer access\n");
-        cudaSetDevice(0);
-        cudaDeviceEnablePeerAccess(1, 0); // (dev 1, future flag)
-        cudaSetDevice(1);
-        cudaDeviceEnablePeerAccess(0, 0); // (dev 0, future flag)
-        cudaSetDevice(0);
-
-
         if(debug_print) printf("Compute jacobi_offload_dual on two devices\n");
         warm_up_gpu(0);
         warm_up_gpu(1);
