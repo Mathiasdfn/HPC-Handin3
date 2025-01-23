@@ -4,7 +4,7 @@
 #include <omp.h>
 #include <math.h>
 
-void swap_pointers_offload_map(void **ptr1, void **ptr2);
+void swap_pointers(void **ptr1, void **ptr2);
 void update_u_offload_map(double ***f, double ***u, double ***u_old, int N);
 double update_u_with_diff_norm_squared_offload_map(double ***f, double ***u, double ***u_old, int N);
 
@@ -17,7 +17,7 @@ double jacobi_offload_map(double ***f, double ***u, double ***u_old, int N, int 
     {
         start_time = omp_get_wtime();
         for(int iter=0; iter < iter_max; iter++) {
-            swap_pointers_offload_map((void **)&u, (void **)&u_old);
+            swap_pointers((void **)&u, (void **)&u_old);
             update_u_offload_map(f, u, u_old, N);
         }
         end_time = omp_get_wtime();
@@ -36,19 +36,13 @@ int jacobi_offload_map_tol(double ***f, double ***u, double ***u_old, int N, int
         map(to: f[0:N][0:N][0:N]) \
         map(tofrom: u[0:N][0:N][0:N], u_old[0:N][0:N][0:N])
     while (d2 > tol2 && iter < iter_max) {
-        swap_pointers_offload_map((void **)&u, (void **)&u_old);
+        swap_pointers((void **)&u, (void **)&u_old);
         d2 = update_u_with_diff_norm_squared_offload_map(f, u, u_old, N);
         iter++;
     }
 
     *tolerance = sqrt(d2);
     return iter;
-}
-
-void swap_pointers_offload_map(void **ptr1, void **ptr2) {
-    void *temp = *ptr1;
-    *ptr1 = *ptr2;
-    *ptr2 = temp;
 }
 
 void update_u_offload_map(double ***f, double ***u, double ***u_old, int N) {

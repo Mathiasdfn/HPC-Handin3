@@ -4,14 +4,14 @@
 #include <omp.h>
 #include <math.h>
 
-void swap_pointers_offload_dual(void **ptr1, void **ptr2);
+void swap_pointers(void **ptr1, void **ptr2);
 void update_u_offload_dual(double ***f0, double ***f1, double ***u0, double ***u1, double ***u_old0, double ***u_old1, int N);
 double update_u_with_diff_norm_squared_offload_dual(double ***f0, double ***f1, double ***u0, double ***u1, double ***u_old0, double ***u_old1, int N);
 
 void jacobi_offload_dual(double ***f0, double ***f1, double ***u0, double ***u1, double ***u_old0, double ***u_old1, int N, int iter_max) {
     for(int iter=0; iter < iter_max; iter++) {
-        swap_pointers_offload_dual((void **)&u0, (void **)&u_old0);
-        swap_pointers_offload_dual((void **)&u1, (void **)&u_old1);
+        swap_pointers((void **)&u0, (void **)&u_old0);
+        swap_pointers((void **)&u1, (void **)&u_old1);
         update_u_offload_dual(f0, f1, u0, u1, u_old0, u_old1, N);
     }
 }
@@ -23,8 +23,8 @@ int jacobi_offload_dual_tol(double ***f0, double ***f1, double ***u0, double ***
     double tol2 = tol * tol;
 
     while (d2 > tol2 && iter < iter_max) {
-        swap_pointers_offload_dual((void **)&u0, (void **)&u_old0);
-        swap_pointers_offload_dual((void **)&u1, (void **)&u_old1);
+        swap_pointers((void **)&u0, (void **)&u_old0);
+        swap_pointers((void **)&u1, (void **)&u_old1);
         d2 = update_u_with_diff_norm_squared_offload_dual(f0, f1, u0, u1, u_old0, u_old1, N);
         iter++;
     }
@@ -32,12 +32,6 @@ int jacobi_offload_dual_tol(double ***f0, double ***f1, double ***u0, double ***
     *tolerance = sqrt(d2);
     return iter;
 }
-
-void swap_pointers_offload_dual(void **ptr1, void **ptr2) {
-    void *temp = *ptr1;
-    *ptr1 = *ptr2;
-    *ptr2 = temp;
-}   
 
 void update_u_offload_dual(double ***f0, double ***f1, double ***u0, double ***u1, double ***u_old0, double ***u_old1, int N) {
     double delta = 2.0 / (N - 1);
