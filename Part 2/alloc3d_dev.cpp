@@ -31,7 +31,6 @@ double ***d_malloc_3d(int m, int n, int k, double **data) {
     }
 
     *data = a;
-
     return p;
 }
 

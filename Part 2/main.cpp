@@ -20,23 +20,30 @@ double diff_norm_squared(double ***u1, double ***u2, int N);
 void print_3d_array(double ***A, int N);
 
 int main(int argc, char *argv[]) {
-    /* get the paramters from the command line */
+    // get the paramters from the command line
     int 	N = 500;
     int 	iter_max = 1000;
+    double	tolerance = -1.0;
     double	start_T = 10;
-    bool    debug_print = true;
-    bool    offload = true;
+    bool    debug_print = false;
+    bool    host = true;
     bool    offload_map = true;
+    bool    offload = true;
     bool    offload_dual = true;
 
     if (argc >= 2) N = atoi(argv[1]);	// grid size
     if (argc >= 3) iter_max = atoi(argv[2]);  // max. no. of iterations
-    if (argc >= 4) start_T = atof(argv[3]);  // start T for all inner grid points
-    if (argc >= 5) debug_print = atof(argv[4]);  // do debug print statements
-    if (argc >= 6) offload = atof(argv[5]);  // do offload
+    if (argc >= 4) tolerance = atof(argv[3]);  // tolerance (negative to disable)
+    if (argc >= 5) start_T = atof(argv[4]);  // start T for all inner grid points
+    if (argc >= 6) debug_print = atof(argv[5]);  // do debug print statements
     if (argc >= 7) offload_map = atof(argv[6]);  // do offload map
-    if (argc >= 8) offload_dual = atof(argv[7]);  // do debug print dual
+    if (argc >= 8) offload = atof(argv[7]);  // do offload
+    if (argc >= 9) offload_dual = atof(argv[8]);  // do debug print dual
 
+    // needed variables
+    double tol = tolerance;
+    int iter;
+    double  start_time, end_time, time;
 
     // allocate memory
     if(debug_print) printf("Allocate memory on host\n");
@@ -183,34 +190,60 @@ int main(int argc, char *argv[]) {
 
 
     // compute and time jacobi on host
-    if(debug_print) printf("Compute jacobi on host\n");
-    double  start_time, end_time, time;
+    if(host) {
+        if(debug_print) printf("Compute jacobi on host\n");
 
-    start_time = omp_get_wtime();
-    jacobi(f, u, u_old, N, iter_max);
-    end_time = omp_get_wtime();
+        start_time = omp_get_wtime();
+        if (tolerance >= 0) {
+            iter = jacobi_tol(f, u, u_old, N, iter_max, &tol);
+        } else {
+            jacobi(f, u, u_old, N, iter_max);
+        }
+        end_time = omp_get_wtime();
 
-    printf("Time for jacobi: %.6f seconds\n", end_time - start_time);
+        printf("Time for jacobi: %.6f seconds\n", end_time - start_time);
+        if (tolerance >= 0) {
+            printf("Iter for jacobi: %d\n", iter);
+            printf("Tolerance for jacobi: %.6f\n", tol);
+            tol = tolerance;
+        }
+    }
 
 
     // compute and time jacobi_offload_map on device with map
     if(offload_map) {
         if(debug_print) printf("Compute jacobi_offload_map on device with map\n");
+
         start_time = omp_get_wtime();
-        time = jacobi_offload_map(f, u2, u_old2, N, iter_max);
+        if (tolerance >= 0) {
+            iter = jacobi_offload_map_tol(f, u2, u_old2, N, iter_max, &tol);
+        } else {
+            time = jacobi_offload_map(f, u2, u_old2, N, iter_max);
+        }
         end_time = omp_get_wtime();
 
         printf("Time for jacobi_offload_map: %.6f seconds\n", end_time - start_time);
-        printf("Time for jacobi_offload_map w/o transfer: %.6f seconds\n", time);
-        printf("Norm difference ||u - u_d||^2: %.6f\n", diff_norm_squared(u, u2, N));
+        if (tolerance >= 0) {
+            printf("Iter for jacobi_offload_map: %d\n", iter);
+            printf("Tolerance for jacobi_offload_map: %.6f\n", tol);
+            tol = tolerance;
+        } else {
+            printf("Time for jacobi_offload_map w/o transfer: %.6f seconds\n", time);
+        }
+        if(host) printf("Norm difference for jacobi_offload_map: %.6f\n", diff_norm_squared(u, u2, N));
     }
 
 
     // compute and time jacobi_offload on device
     if(offload) {
         if(debug_print) printf("Compute jacobi_offload on device\n");
+
         start_time = omp_get_wtime();
-        jacobi_offload(f_d, u_d, u_old_d, N, iter_max);
+        if (tolerance >= 0) {
+            iter = jacobi_offload_tol(f_d, u_d, u_old_d, N, iter_max, &tol);
+        } else {
+            jacobi_offload(f_d, u_d, u_old_d, N, iter_max);
+        }
         end_time = omp_get_wtime();
 
         if(debug_print) printf("Copy device memory to host\n");
@@ -218,7 +251,12 @@ int main(int argc, char *argv[]) {
         omp_target_memcpy(u_old2[0][0], data_u_old_d, N * N * N * sizeof(double), 0, 0, host_num, dev_num);
 
         printf("Time for jacobi_offload: %.6f seconds\n", end_time - start_time);
-        printf("Norm difference ||u - u_d||^2: %.6f\n", diff_norm_squared(u, u2, N));
+        if (tolerance >= 0) {
+            printf("Iter for jacobi_offload: %d\n", iter);
+            printf("Tolerance for jacobi_offload: %.6f\n", tol);
+            tol = tolerance;
+        }
+        if(host) printf("Norm difference for jacobi_offload: %.6f\n", diff_norm_squared(u, u2, N));
     }
 
 
@@ -234,7 +272,11 @@ int main(int argc, char *argv[]) {
 
         if(debug_print) printf("Compute jacobi_offload_dual on two devices\n");
         start_time = omp_get_wtime();
-        jacobi_offload_dual(f_d0, f_d1, u_d0, u_d1, u_old_d0, u_old_d1, N, iter_max);
+        if (tolerance >= 0) {
+            iter = jacobi_offload_dual_tol(f_d0, f_d1, u_d0, u_d1, u_old_d0, u_old_d1, N, iter_max, &tol);
+        } else {
+            jacobi_offload_dual(f_d0, f_d1, u_d0, u_d1, u_old_d0, u_old_d1, N, iter_max);
+        }
         end_time = omp_get_wtime();
 
         if(debug_print) printf("Copy device memory to host\n");
@@ -244,7 +286,12 @@ int main(int argc, char *argv[]) {
         omp_target_memcpy(u_old2[N/2][0], data_u_old_d1, N * N * N * sizeof(double) / 2, 0, 0, host_num, 1);
 
         printf("Time for jacobi_offload_dual: %.6f seconds\n", end_time - start_time);
-        printf("Norm difference ||u - u_d||^2: %.6f\n", diff_norm_squared(u, u2, N));
+        if (tolerance >= 0) {
+            printf("Iter for jacobi_offload_dual: %d\n", iter);
+            printf("Tolerance for jacobi_offload_dual: %.6f\n", tol);
+            tol = tolerance;
+        }
+        if(host) printf("Norm difference for jacobi_offload_dual: %.6f\n", diff_norm_squared(u, u2, N));
     }
     
 
@@ -359,17 +406,4 @@ double diff_norm_squared(double ***u1, double ***u2, int N) {
     }
 
     return norm;
-}
-
-void print_3d_array(double ***A, int N) {
-    for (int i = 0; i < N; i++) {
-        printf("Slice i = %d:\n", i);
-        for (int j = 0; j < N; j++) {
-            for (int k = 0; k < N; k++) {
-                printf("%.2f ", A[i][j][k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
 }
