@@ -17,6 +17,7 @@ void init_u_inner(double ***u, int N, double start_T);
 void init_u_borders(double ***u, int N);
 void init_u_corners(double ***u, int N);
 double diff_norm_squared(double ***u1, double ***u2, int N);
+void warm_up_gpu(int dev_num);
 
 int main(int argc, char *argv[]) {
     // get the paramters from the command line
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
     int 	iter_max = 1000;
     double	tolerance = -1.0;
     double	start_T = 10;
-    bool    debug_print = false;
+    bool    debug_print = true;
     bool    host = true;
     bool    offload_map = true;
     bool    offload = true;
@@ -214,6 +215,7 @@ int main(int argc, char *argv[]) {
     if(offload_map) {
         if(debug_print) printf("Compute jacobi_offload_map on device with map\n");
 
+        warm_up_gpu(dev_num);
         start_time = omp_get_wtime();
         if (tolerance >= 0) {
             iter = jacobi_offload_map_tol(f, u2, u_old2, N, iter_max, &tol);
@@ -238,6 +240,7 @@ int main(int argc, char *argv[]) {
     if(offload) {
         if(debug_print) printf("Compute jacobi_offload on device\n");
 
+        warm_up_gpu(dev_num);
         start_time = omp_get_wtime();
         if (tolerance >= 0) {
             iter = jacobi_offload_tol(f_d, u_d, u_old_d, N, iter_max, &tol);
@@ -270,7 +273,11 @@ int main(int argc, char *argv[]) {
         cudaDeviceEnablePeerAccess(0, 0); // (dev 0, future flag)
         cudaSetDevice(0);
 
+
         if(debug_print) printf("Compute jacobi_offload_dual on two devices\n");
+        warm_up_gpu(0);
+        warm_up_gpu(1);
+        
         start_time = omp_get_wtime();
         if (tolerance >= 0) {
             iter = jacobi_offload_dual_tol(f_d0, f_d1, u_d0, u_d1, u_old_d0, u_old_d1, N, iter_max, &tol);
@@ -406,4 +413,9 @@ double diff_norm_squared(double ***u1, double ***u2, int N) {
     }
 
     return norm;
+}
+
+void warm_up_gpu(int dev_num) {
+    void *p = omp_target_alloc(1, dev_num);
+    omp_target_free(p, dev_num);
 }
