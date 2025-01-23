@@ -6,4 +6,5 @@ hpcintrogpush
 hpcintrogpush
 module load nvhpc/24.11
 export CUDA_VISIBLE_DEVICES=0,1
+export OMP_NUM_THREADS=32
 ``

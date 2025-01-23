@@ -21,12 +21,12 @@ void print_3d_array(double ***A, int N);
 
 int main(int argc, char *argv[]) {
     /* get the paramters from the command line */
-    int 	N = 100;
-    int 	iter_max = 10000;
+    int 	N = 500;
+    int 	iter_max = 1000;
     double	start_T = 10;
     bool    debug_print = true;
     bool    offload = true;
-    bool    offload_map = false;
+    bool    offload_map = true;
     bool    offload_dual = true;
 
     if (argc >= 2) N = atoi(argv[1]);	// grid size
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    // copy memory to two devices
+    // copy memory to two devices   
     if(offload_dual) {
         if(debug_print) printf("Copy memory to two devices\n");
 
@@ -224,6 +224,7 @@ int main(int argc, char *argv[]) {
 
     // compute and time jacobi_offload_dual on two devices
     if(offload_dual) {
+        // enable CUDA peer-to-peer access
         if(debug_print) printf("Turn on CUDA peer-to-peer access\n");
         cudaSetDevice(0);
         cudaDeviceEnablePeerAccess(1, 0); // (dev 1, future flag)

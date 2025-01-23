@@ -2,3 +2,4 @@
 *.so
 *.out
 nsight-compute-lock
+*.nsys-rep
