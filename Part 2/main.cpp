@@ -17,7 +17,6 @@ void init_u_inner(double ***u, int N, double start_T);
 void init_u_borders(double ***u, int N);
 void init_u_corners(double ***u, int N);
 double diff_norm_squared(double ***u1, double ***u2, int N);
-void print_3d_array(double ***A, int N);
 
 int main(int argc, char *argv[]) {
     // get the paramters from the command line
