@@ -415,6 +415,12 @@ double diff_norm_squared(double ***u1, double ***u2, int N) {
     return norm;
 }
 
+void swap_pointers(void **ptr1, void **ptr2) {
+    void *temp = *ptr1;
+    *ptr1 = *ptr2;
+    *ptr2 = temp;
+}
+
 void warm_up_gpu(int dev_num) {
     void *p = omp_target_alloc(1, dev_num);
     omp_target_free(p, dev_num);

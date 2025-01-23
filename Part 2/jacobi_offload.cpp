@@ -4,13 +4,13 @@
 #include <omp.h>
 #include <math.h>
 
-void swap_pointers_offload(void **ptr1, void **ptr2);
+void swap_pointers(void **ptr1, void **ptr2);
 void update_u_offload(double ***f, double ***u, double ***u_old, int N);
 double update_u_with_diff_norm_squared_offload(double ***f, double ***u, double ***u_old, int N);
 
 void jacobi_offload(double ***f, double ***u, double ***u_old, int N, int iter_max) {
     for(int iter=0; iter < iter_max; iter++) {
-        swap_pointers_offload((void **)&u, (void **)&u_old);
+        swap_pointers((void **)&u, (void **)&u_old);
         update_u_offload(f, u, u_old, N);
     }
 }
@@ -22,19 +22,13 @@ int jacobi_offload_tol(double ***f, double ***u, double ***u_old, int N, int ite
     double tol2 = tol * tol;
 
     while (d2 > tol2 && iter < iter_max) {
-        swap_pointers_offload((void **)&u, (void **)&u_old);
+        swap_pointers((void **)&u, (void **)&u_old);
         d2 = update_u_with_diff_norm_squared_offload(f, u, u_old, N);
         iter++;
     }
 
     *tolerance = sqrt(d2);
     return iter;
-}
-
-void swap_pointers_offload(void **ptr1, void **ptr2) {
-    void *temp = *ptr1;
-    *ptr1 = *ptr2;
-    *ptr2 = temp;
 }
 
 void update_u_offload(double ***f, double ***u, double ***u_old, int N) {

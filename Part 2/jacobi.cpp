@@ -30,12 +30,6 @@ int jacobi_tol(double ***f, double ***u, double ***u_old, int N, int iter_max, d
     return iter;
 }
 
-void swap_pointers(void **ptr1, void **ptr2) {
-    void *temp = *ptr1;
-    *ptr1 = *ptr2;
-    *ptr2 = temp;
-}
-
 void update_u(double ***f, double ***u, double ***u_old, int N) {
     double delta = 2.0 / (N - 1);
     double delta2 = delta * delta;
