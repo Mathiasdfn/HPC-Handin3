@@ -4,3 +4,4 @@
 nsight-compute-lock
 *.nsys-rep
 *.dat
+.vscode
