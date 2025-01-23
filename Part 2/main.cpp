@@ -35,9 +35,10 @@ int main(int argc, char *argv[]) {
     if (argc >= 4) tolerance = atof(argv[3]);  // tolerance (negative to disable)
     if (argc >= 5) start_T = atof(argv[4]);  // start T for all inner grid points
     if (argc >= 6) debug_print = atof(argv[5]);  // do debug print statements
-    if (argc >= 7) offload_map = atof(argv[6]);  // do offload map
-    if (argc >= 8) offload = atof(argv[7]);  // do offload
-    if (argc >= 9) offload_dual = atof(argv[8]);  // do debug print dual
+    if (argc >= 7) host = atof(argv[6]);  // do host
+    if (argc >= 8) offload_map = atof(argv[7]);  // do offload map
+    if (argc >= 9) offload = atof(argv[8]);  // do offload
+    if (argc >= 10) offload_dual = atof(argv[9]);  // do offload dual
 
     // needed variables
     double tol = tolerance;
