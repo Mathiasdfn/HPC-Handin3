@@ -3,5 +3,8 @@
 *.out
 nsight-compute-lock
 *.nsys-rep
+<<<<<<< HEAD
 *.dat
 .vscode
+=======
+>>>>>>> refs/remotes/origin/main
