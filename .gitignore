@@ -3,3 +3,4 @@
 *.out
 nsight-compute-lock
 *.nsys-rep
+*.dat
