@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     int 	N = 100;
     int 	iter_max = 10000;
     double	start_T = 10;
-    bool    debug_print = false;
+    bool    debug_print = true;
     bool    offload = true;
     bool    offload_map = false;
     bool    offload_dual = true;
@@ -92,6 +92,7 @@ int main(int argc, char *argv[]) {
 
     if(offload) {
         if(debug_print) printf("Allocate memory on device\n");
+
         if ( (f_d = d_malloc_3d(N, N, N, &data_f_d)) == NULL ) {
             perror("array f: allocation failed");
             exit(-1);
@@ -160,10 +161,14 @@ int main(int argc, char *argv[]) {
     // copy memory to device
     if(offload) {
         if(debug_print) printf("Copy memory to device\n");
+
         omp_target_memcpy(data_f_d, f[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
         omp_target_memcpy(data_u_d, u[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
         omp_target_memcpy(data_u_old_d, u_old[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
     }
+
+
+    // copy memory to two devices
     if(offload_dual) {
         if(debug_print) printf("Copy memory to two devices\n");
 
@@ -226,7 +231,7 @@ int main(int argc, char *argv[]) {
         cudaDeviceEnablePeerAccess(0, 0); // (dev 0, future flag)
         cudaSetDevice(0);
 
-        if(debug_print) printf("Compute jacobi_offload_dual on device\n");
+        if(debug_print) printf("Compute jacobi_offload_dual on two devices\n");
         start_time = omp_get_wtime();
         jacobi_offload_dual(f_d0, f_d1, u_d0, u_d1, u_old_d0, u_old_d1, N, iter_max);
         end_time = omp_get_wtime();

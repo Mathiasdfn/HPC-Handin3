@@ -25,31 +25,38 @@ void update_u_offload_dual(double ***f0, double ***f1, double ***u0, double ***u
     double delta2 = delta * delta;
     double frac = 1.0 / 6.0;
 
+    // border mid points
+    int i0 = N/2 - 1;
+    int i1 = 0;
+
     // inner points
-    #pragma omp target teams loop collapse(3) device(0) is_device_ptr(f0, u0, u_old0) nowait
-    for (int i = 1; i < N/2 - 1; i++) {
+    #pragma omp target teams loop collapse(3) device(0) is_device_ptr(f0, u0, u_old0, u_old1) nowait
+    for (int i = 1; i < N/2; i++) {
         for (int j = 1; j < N-1; j++) {
             for (int k = 1; k < N-1; k++) {
-                u0[i][j][k] = frac * (u_old0[i-1][j][k] + u_old0[i+1][j][k] + u_old0[i][j-1][k] 
+                double u_old_ijk = i == i0 ? u_old1[i1][j][k] : u_old0[i+1][j][k];
+
+                u0[i][j][k] = frac * (u_old0[i-1][j][k] + u_old_ijk + u_old0[i][j-1][k] 
                     + u_old0[i][j+1][k] + u_old0[i][j][k-1] + u_old0[i][j][k+1] + delta2*f0[i][j][k]);
             }
         }
     }
 
-    #pragma omp target teams loop collapse(3) device(1) is_device_ptr(f1, u1, u_old1) nowait
-    for (int i = 1; i < N/2 - 1; i++) {
+    #pragma omp target teams loop collapse(3) device(1) is_device_ptr(f1, u1, u_old1, u_old0) nowait
+    for (int i = 0; i < N/2 - 1; i++) {
         for (int j = 1; j < N-1; j++) {
             for (int k = 1; k < N-1; k++) {
-                u1[i][j][k] = frac * (u_old1[i-1][j][k] + u_old1[i+1][j][k] + u_old1[i][j-1][k] 
+                double u_old_ijk = i == i1 ? u_old0[i0][j][k] : u_old1[i-1][j][k];
+                
+                u1[i][j][k] = frac * (u_old_ijk + u_old1[i+1][j][k] + u_old1[i][j-1][k] 
                     + u_old1[i][j+1][k] + u_old1[i][j][k-1] + u_old1[i][j][k+1] + delta2*f1[i][j][k]);
             }
         }
     }
 
-    // border mid points
-    int i0 = N/2 - 1;
-    int i1 = 0;
+    #pragma omp taskwait
 
+    /*
     #pragma omp target teams loop collapse(2) device(0) is_device_ptr(f0, u0, u_old0, u_old1) nowait
     for (int j = 1; j < N-1; j++) {
         for (int k = 1; k < N-1; k++) {
@@ -66,6 +73,5 @@ void update_u_offload_dual(double ***f0, double ***f1, double ***u0, double ***u
                 + u_old1[i1][j+1][k] + u_old1[i1][j][k-1] + u_old1[i1][j][k+1] + delta2*f1[i1][j][k]);
         }
     }
-
-    #pragma omp taskwait
+    */
 }
