@@ -170,9 +170,9 @@ int main(int argc, char *argv[]) {
     if(offload) {
         if(debug_print) printf("Copy memory to device\n");
 
-        omp_target_memcpy(data_f_d, f[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
-        omp_target_memcpy(data_u_d, u[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
-        omp_target_memcpy(data_u_old_d, u_old[0][0], N * N * N * sizeof(double), 0, 0, dev_num, host_num);
+        omp_target_memcpy(data_f_d, f[0][0], N*N*N*sizeof(double), 0, 0, dev_num, host_num);
+        omp_target_memcpy(data_u_d, u[0][0], N*N*N*sizeof(double), 0, 0, dev_num, host_num);
+        omp_target_memcpy(data_u_old_d, u_old[0][0], N*N*N*sizeof(double), 0, 0, dev_num, host_num);
     }
 
 
@@ -259,8 +259,8 @@ int main(int argc, char *argv[]) {
         end_time = omp_get_wtime();
 
         if(debug_print) printf("Copy device memory to host\n");
-        omp_target_memcpy(u2[0][0], data_u_d, N * N * N * sizeof(double), 0, 0, host_num, dev_num);
-        omp_target_memcpy(u_old2[0][0], data_u_old_d, N * N * N * sizeof(double), 0, 0, host_num, dev_num);
+        omp_target_memcpy(u2[0][0], data_u_d, N*N*N*sizeof(double), 0, 0, host_num, dev_num);
+        omp_target_memcpy(u_old2[0][0], data_u_old_d, N*N*N*sizeof(double), 0, 0, host_num, dev_num);
 
         printf("Time for jacobi_offload: %.6f seconds\n", end_time - start_time);
         if (tolerance >= 0) {
@@ -287,10 +287,10 @@ int main(int argc, char *argv[]) {
         end_time = omp_get_wtime();
 
         if(debug_print) printf("Copy device memory to host\n");
-        omp_target_memcpy(u2[0][0], data_u_d0, N * N * N * sizeof(double) / 2, 0, 0, host_num, 0);
-        omp_target_memcpy(u2[N/2][0], data_u_d1, N * N * N * sizeof(double) / 2, 0, 0, host_num, 1);
-        omp_target_memcpy(u_old2[0][0], data_u_old_d0, N * N * N * sizeof(double) / 2, 0, 0, host_num, 0);
-        omp_target_memcpy(u_old2[N/2][0], data_u_old_d1, N * N * N * sizeof(double) / 2, 0, 0, host_num, 1);
+        omp_target_memcpy(u2[0][0], data_u_d0, N*N*N*sizeof(double)/2, 0, 0, host_num, 0);
+        omp_target_memcpy(u2[N/2][0], data_u_d1, N*N*N*sizeof(double)/2, 0, 0, host_num, 1);
+        omp_target_memcpy(u_old2[0][0], data_u_old_d0, N*N*N*sizeof(double)/2, 0, 0, host_num, 0);
+        omp_target_memcpy(u_old2[N/2][0], data_u_old_d1, N*N*N*sizeof(double)/2, 0, 0, host_num, 1);
 
         printf("Time for jacobi_offload_dual: %.6f seconds\n", end_time - start_time);
         if (tolerance >= 0) {

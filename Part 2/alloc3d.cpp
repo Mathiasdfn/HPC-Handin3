@@ -16,8 +16,8 @@ double ***malloc_3d(int m, int n, int k) {
 
     double *a = (double*) malloc(m * n * k * sizeof(double));
     if (a == NULL) {
-	free(p);
-	return NULL;
+        free(p);
+        return NULL;
     }
 
     for(int i = 0; i < m; i++) {
