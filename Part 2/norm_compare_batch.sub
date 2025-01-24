@@ -5,17 +5,20 @@
 #BSUB -R "rusage[mem=2048]"
 #BSUB -W 15
 #BSUB -R "span[hosts=1]"
-#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -gpu "num=2:mode=exclusive_process"
 
 
 module load nvhpc/24.11
 
-for i in 1 2 3 4 5
+for i in 1 2 3
 do
-    echo "Round $i with stopping tolerance 1"
-    OMP_NUM_THREADS=32 ./poisson 500 1000 1.0 10.0 0 1 0 1 0
-    echo "Round $i without stopping tolerance" 
-    OMP_NUM_THREADS=32 ./poisson 500 1000 -1.0 10.0 0 1 0 1 0 
+    echo "------------------------------------"
+    echo "Round ${bold}$i${normal} with stopping tolerance 1"
+    OMP_NUM_THREADS=32 CUDA_VISIBLE_DEVICES=0,1 ./poisson 500 1000 1.0 10.0 0 1 1 1 1
+    echo "------------------------------------"
+    echo "Round ${bold}$i${normal} without stopping tolerance" 
+    OMP_NUM_THREADS=32 CUDA_VISIBLE_DEVICES=0,1 ./poisson 500 1000 -1.0 10.0 0 1 1 1 1 
+    echo "------------------------------------"
 
 done
 
