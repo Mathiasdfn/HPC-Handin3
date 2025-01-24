@@ -191,7 +191,7 @@ void matmult_mnk_offload(int m, int n, int k, double **A, double **B, double **C
 
     // Compute A*B product
     #pragma omp target teams map(to: A[0:m][0:k], B[0:k][0:n]) map(tofrom: C[0:m][0:n]) \
-            num_teams(MIN(m*n/32, 7296/8)) thread_limit(32)
+            num_teams(MIN(m*n/32, 7296/4)) thread_limit(32)
     #pragma omp distribute parallel for collapse(2)
     for (int i=0; i<m; i++){
         //#pragma omp parallel for
