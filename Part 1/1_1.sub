@@ -1,0 +1,55 @@
+#!/bin/bash
+# 02614 - High-Performance Computing, January 2024
+# 
+# batch script to run matmult on a dedicated GPU server in the hpcintrogpu
+# queue
+#
+# Author: Bernd Dammann <bd@cc.dtu.dk>
+#         Hans Henrik Brandenborg Sørensen <hhbs@dtu.dk>
+#
+#BSUB -J mnk_omp_cpu
+#BSUB -o mnk_omp_cpu_%J.out
+#BSUB -q hpcintrogpu
+#BSUB -n 32
+#BSUB -R "rusage[mem=2048]"
+#BSUB -W 15
+#BSUB -R "span[hosts=1]"
+# below commented out as we run on CPU only for these tests (but we should 
+# still use the gpu queue to compare with the correct CPU)
+##BSUB -gpu "num=1:mode=exclusive_process:affinity=yes"
+
+# define the driver name to use
+# valid values: matmult_c.nvc++, matmult_f.nvc++
+#
+EXECUTABLE=matmult_c.nvc++
+
+# define the mkn values in the MKN variable
+#
+SIZES="100 200 500 1000 2000 5000"
+
+# define the method type in TYPE
+#
+TYPES="mkn_omp lib"
+
+# enable(1)/disable(0) result checking
+export MATMULT_COMPARE=0 # 1 is default
+export MFLOPS_MAX_IT=infinity # infinity is default
+export MFLOPS_MIN_T=10.0 # 3.0 is default
+
+# load module for shared cuda libraries
+# might still be necessary for cuBLAS CPU multi-threading
+module load nvhpc/24.11
+
+# set CPU multithreading to use all the threads of the single socket
+export OMP_NUM_THREADS=32
+
+# start the collect command with the above settings
+for T in $TYPES
+do
+    for S in $SIZES
+    do
+        ./$EXECUTABLE $T $S $S $S
+    done
+done
+
+# OMP_NUM_THREADS=32 numactl --cpunodebind=0 ./matmult_c.nvc++ ...
