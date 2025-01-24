@@ -14,7 +14,7 @@ set output "dual_comparison.png"
 
 # Plot the data
 plot "dual_compare.dat" using 1:2 with linespoints title "standard offload" pt 1 ps 2 linecolor rgb "navy" , \
-     "dual_compare.dat" using 1:3 with linespoints title "dual offload" pt 3 ps 2 linecolor rgb "dark-green"
+     "dual_compare.dat" using 1:3 with linespoints title "dual offload" pt 5 ps 1.5 linecolor rgb "dark-green"
 
 
 
@@ -36,4 +36,4 @@ set output "dual_comparison_logscale.png"
 
 # Plot the data
 plot "dual_compare.dat" using 1:2 with linespoints title "standard offload" pt 1 ps 2 linecolor rgb "navy" , \
-     "dual_compare.dat" using 1:3 with linespoints title "dual offload" pt 3 ps 2 linecolor rgb "dark-green"
+     "dual_compare.dat" using 1:3 with linespoints title "dual offload" pt 5 ps 1.5 linecolor rgb "dark-green"

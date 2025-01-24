@@ -1,0 +1,4 @@
+gnuplot dual_compare_plot_script.gp 
+gnuplot map_memcpy_compare_plot_script.gp
+gnuplot all_compare_plot_script.gp
+gnuplot gpu_cpu_compare_plot_script.gp
